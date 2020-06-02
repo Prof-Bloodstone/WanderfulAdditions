@@ -1,0 +1,22 @@
+---
+# For list of possible values for ingredients and item, see:
+# https://papermc.io/javadocs/paper/1.15/org/bukkit/Material.html
+
+wand:
+  type: WOODEN_SWORD
+  name: '&6Item Frame Wand'
+  lore:
+    - '&2Now you see me,'
+    - '&4now you don''t'
+
+recipe:
+  enabled: true
+  shape:
+    - '$'
+    - '$'
+    - '!'
+  ingredients:
+    '$': EMERALD
+    '!': STICK
+  amount: 1
+
