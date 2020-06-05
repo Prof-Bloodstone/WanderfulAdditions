@@ -13,15 +13,15 @@ var ItemFrame.visible: Boolean
     get() = frame_visible
     set(value) { frame_visible = value }
 
-class InvisiFramesListener(private val plugin: InvisiFrames) : Listener {
+class WandListener(private val plugin: InvisiFrames) : Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onPlayerInteractEntityEvent(event: PlayerInteractEntityEvent) {
         val itemFrame = event.rightClicked as? ItemFrame ?: return
         if (event.hand != EquipmentSlot.HAND) return
         val item = event.player.equipment!!.itemInMainHand // Player always has equipment
-        val container = item.itemMeta?.persistentDataContainer
-        if (container?.has(plugin.wandNamespacedKey, plugin.wandPersistentDataType) != true) return
+        val container = item.itemMeta?.persistentDataContainer ?: return
+        if (!container.has(plugin.wandNamespacedKey, plugin.wandPersistentDataType)) return
         if (container.get(plugin.wandNamespacedKey, plugin.wandPersistentDataType) != plugin.wandPersistentDataValue) return
         // TODO: Update to 1.16
         itemFrame.visible = !itemFrame.visible

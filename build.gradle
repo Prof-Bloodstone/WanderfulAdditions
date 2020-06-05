@@ -6,13 +6,14 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
-description 'Simple plugin to let your players make item frames invisible'
-group 'dev.bloodstone.invisiframes'
-version '0.0.1'
+description 'Simple plugin to let your players make item frames invisible.'
+group 'dev.bloodstone'
+version '0.0.2'
 
-def mcVersion = '1.15.2-R0.1-SNAPSHOT' // Put the version of Bukkit/Spigot you want your plugin to depend on
+def mcVersion = '1.15.2-R0.1-SNAPSHOT'
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" }
     maven { url "https://oss.sonatype.org/content/repositories/public/" }
@@ -23,6 +24,7 @@ shadowJar {
     String base = "${project.property('group')}.lib"
     relocate 'co.aikar.commands', "${base}.commands"
     relocate 'co.aikar.locales', "${base}.locales"
+    relocate 'dev.bloodstone.mcutils', "${base}.mcutils"
 }
 
 build {
@@ -33,6 +35,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation group: 'co.aikar', name: 'acf-paper', version: '0.5.0-SNAPSHOT'
     compileOnly group: 'org.spigotmc', name: 'spigot-api', version: mcVersion
+    implementation group: 'dev.bloodstone', name: 'mcutils', version: '0.0.1'
 }
 
 spigot {

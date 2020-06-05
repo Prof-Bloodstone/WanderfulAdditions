@@ -1,13 +1,15 @@
 ---
-# For list of possible values for ingredients and item, see:
+# For list of possible values for item type, ingredients and trader prices, see:
 # https://papermc.io/javadocs/paper/1.15/org/bukkit/Material.html
 
 wand:
   type: WOODEN_SWORD
+  # Name and lore can contain color codes escaped by '&'
   name: '&6Item Frame Wand'
   lore:
     - '&2Now you see me,'
     - '&4now you don''t'
+  glow: true
 
 recipe:
   enabled: true
@@ -19,4 +21,21 @@ recipe:
     '$': EMERALD
     '!': STICK
   amount: 1
+
+wandering_trader:
+  enabled: true
+  # What are the chances of a wandering trader having the recipe - from 1 to 100
+  chance: 10
+  # How many times can the trade be used
+  uses:
+    min: 2
+    max: 5
+  # 1 or 2 ingredients needed for trade
+  ingredients:
+    - type: EMERALD
+      count:
+        min: 20
+        max: 40
+
+
 

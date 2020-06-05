@@ -3,8 +3,8 @@ package dev.bloodstone.invisiframes
 
 import org.bukkit.NamespacedKey
 import org.bukkit.configuration.InvalidConfigurationException
+import org.bukkit.event.entity.CreatureSpawnEvent
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.Recipe
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -15,21 +15,22 @@ public class InvisiFrames() : JavaPlugin() {
 
     val recipeNamespacedKey = NamespacedKey(this, "wandRecipe")
 
-    val configManager = ConfigManager(this)
-
-    val recipeEnabled: Boolean
-        get() = configManager.recipeEnabled
+    private val configManager = ConfigManager(this)
+    private val wanderingTraderListener = WanderingTraderListener(this)
 
     val wand: ItemStack
         get() = configManager.wand
 
-    val recipe: Recipe
-        get() = configManager.recipe
+    val craftingRecipe: CraftingRecipe
+        get() = configManager.craftingRecipe
+
+    val wanderingTraderRecipe: TradingRecipe
+        get() = configManager.wanderingTraderRecipe
 
     override fun onEnable() {
         super.onEnable()
         try {
-            configManager.loadConfig()
+            configManager.reloadConfig()
         } catch (e: InvalidConfigurationException) {
             logger.severe("ERROR: $e")
             logger.severe("Will disable now")
@@ -38,15 +39,21 @@ public class InvisiFrames() : JavaPlugin() {
         }
         val commandManager = CommandManager(this)
         commandManager.registerCommands()
-        server.pluginManager.registerEvents(InvisiFramesListener(this), this)
+        server.pluginManager.registerEvents(WandListener(this), this)
+        registerWanderingTrader()
         registerRecipe()
     }
 
     fun reload() {
         // Reload configuration
         unregisterRecipe()
-        configManager.loadConfig()
-        registerRecipe()
+        unregisterWanderingTrader()
+        try {
+            configManager.reloadConfig()
+        } finally {
+            registerRecipe()
+            registerWanderingTrader()
+        }
     }
 
     override fun onDisable() {
@@ -55,11 +62,20 @@ public class InvisiFrames() : JavaPlugin() {
         // Listeners and commands are disabled automatically
     }
 
+    private fun registerWanderingTrader() {
+        if (wanderingTraderRecipe.isEnabled) server.pluginManager.registerEvents(wanderingTraderListener, this)
+    }
+
+    private fun unregisterWanderingTrader() {
+        if (wanderingTraderRecipe.isEnabled)
+            CreatureSpawnEvent.getHandlerList().unregister(wanderingTraderListener)
+    }
+
     private fun registerRecipe() {
-        if (recipeEnabled) server.addRecipe(recipe)
+        if (craftingRecipe.isEnabled) server.addRecipe(craftingRecipe.recipe)
     }
 
     private fun unregisterRecipe() {
-        if (recipeEnabled) server.removeRecipe(recipeNamespacedKey)
+        if (craftingRecipe.isEnabled) server.removeRecipe(recipeNamespacedKey)
     }
 }
