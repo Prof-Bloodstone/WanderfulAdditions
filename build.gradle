@@ -8,7 +8,7 @@ plugins {
 
 description 'Simple plugin to let your players make item frames invisible.'
 group 'dev.bloodstone'
-version '0.0.2'
+version '0.1.0'
 
 def mcVersion = '1.15.2-R0.1-SNAPSHOT'
 
@@ -18,18 +18,7 @@ repositories {
     maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" }
     maven { url "https://oss.sonatype.org/content/repositories/public/" }
     maven { url "https://repo.aikar.co/content/groups/aikar/" }
-}
-
-shadowJar {
-    String base = "${project.property('group')}.${project.property('name').toString().toLowerCase()}.lib"
-    relocate 'co.aikar.commands', "${base}.commands"
-    relocate 'co.aikar.locales', "${base}.locales"
-    relocate 'dev.bloodstone.mcutils', "${base}.mcutils"
-    relocate 'ch.jalu.configme', "${base}.configme"
-}
-
-build {
-    dependsOn(shadowJar)
+    maven { url "https://repo.codemc.org/repository/maven-public" } //bstats
 }
 
 dependencies {
@@ -38,7 +27,22 @@ dependencies {
     implementation group: 'org.spigotmc', name: 'spigot-api', version: mcVersion
     implementation group: 'dev.bloodstone', name: 'mcutils', version: '0.0.1'
     implementation group: 'ch.jalu', name: 'configme', version: '1.1.0'
+    implementation group: 'org.bstats', name: 'bstats-bukkit', version: '1.7'
 }
+
+shadowJar {
+    String base = "${project.property('group')}.${project.property('name').toString().toLowerCase()}.lib"
+    relocate 'co.aikar.commands', "${base}.commands"
+    relocate 'co.aikar.locales', "${base}.locales"
+    relocate 'dev.bloodstone.mcutils', "${base}.mcutils"
+    relocate 'ch.jalu.configme', "${base}.configme"
+    relocate 'org.bstats', "${base}.bstats"
+}
+
+build {
+    dependsOn(shadowJar)
+}
+
 
 spigot {
     authors = ['Prof_Bloodstone']

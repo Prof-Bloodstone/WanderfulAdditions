@@ -1,6 +1,7 @@
 /* Licensed under MIT */
 package dev.bloodstone.invisiframes
 
+import org.bstats.bukkit.Metrics
 import org.bukkit.NamespacedKey
 import org.bukkit.configuration.InvalidConfigurationException
 import org.bukkit.event.entity.CreatureSpawnEvent
@@ -14,6 +15,8 @@ public class InvisiFrames() : JavaPlugin() {
     val wandPersistentDataValue: Byte = 1
 
     val recipeNamespacedKey = NamespacedKey(this, "wandRecipe")
+
+    val bstatsPluginId = 7788
 
     private val configManager = ConfigManager(this)
     private val wanderingTraderListener = WanderingTraderListener(this)
@@ -38,11 +41,12 @@ public class InvisiFrames() : JavaPlugin() {
             pluginLoader.disablePlugin(this)
             return
         }
+        registerBstats()
         val commandManager = CommandManager(this)
         commandManager.registerCommands()
         server.pluginManager.registerEvents(WandListener(this), this)
-        registerRecipe()
         registerWanderingTrader()
+        registerRecipe()
         isFullyEnabled = true
     }
 
@@ -63,6 +67,16 @@ public class InvisiFrames() : JavaPlugin() {
         if (isFullyEnabled) unregisterRecipe()
         // Listeners and commands are disabled automatically
         isFullyEnabled = false
+    }
+
+    private fun registerBstats() {
+        val metrics = Metrics(this, bstatsPluginId)
+
+        val obtainMethods = mutableListOf<String>()
+        if (craftingRecipe.isEnabled) obtainMethods.add("Crafting")
+        if (wanderingTraderRecipe.isEnabled) obtainMethods.add("WanderingTrader")
+        val obtainMethodString = if (obtainMethods.isNotEmpty()) obtainMethods.joinToString(separator = " + ") else "None"
+        metrics.addCustomChart(Metrics.SimplePie("wand_obtaining_method") { -> obtainMethodString })
     }
 
     private fun registerWanderingTrader() {
