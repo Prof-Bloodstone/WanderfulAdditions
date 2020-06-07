@@ -17,6 +17,7 @@ public class InvisiFrames() : JavaPlugin() {
 
     private val configManager = ConfigManager(this)
     private val wanderingTraderListener = WanderingTraderListener(this)
+    private var isFullyEnabled = false
 
     val wand: ItemStack
         get() = configManager.wand
@@ -40,8 +41,9 @@ public class InvisiFrames() : JavaPlugin() {
         val commandManager = CommandManager(this)
         commandManager.registerCommands()
         server.pluginManager.registerEvents(WandListener(this), this)
-        registerWanderingTrader()
         registerRecipe()
+        registerWanderingTrader()
+        isFullyEnabled = true
     }
 
     fun reload() {
@@ -58,8 +60,9 @@ public class InvisiFrames() : JavaPlugin() {
 
     override fun onDisable() {
         super.onDisable()
-        unregisterRecipe()
+        if (isFullyEnabled) unregisterRecipe()
         // Listeners and commands are disabled automatically
+        isFullyEnabled = false
     }
 
     private fun registerWanderingTrader() {

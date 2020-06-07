@@ -1,17 +1,17 @@
 /* Licensed under MIT */
 package dev.bloodstone.invisiframes
 
+import ch.jalu.configme.SettingsManagerBuilder
 import dev.bloodstone.mcutils.extensions.itemstack.addGlow
 import dev.bloodstone.mcutils.extensions.itemstack.amount
 import dev.bloodstone.mcutils.extensions.itemstack.lore
 import dev.bloodstone.mcutils.extensions.itemstack.name
 import dev.bloodstone.mcutils.extensions.itemstack.notNullMeta
+import java.io.File
 import kotlin.random.Random
 import kotlin.random.nextInt
 import org.bukkit.Material
-import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.InvalidConfigurationException
-import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.MerchantRecipe
 import org.bukkit.inventory.Recipe
@@ -21,8 +21,8 @@ data class CraftingRecipe(val isEnabled: Boolean, val recipe: Recipe)
 data class Ingredient(val item: ItemStack, val priceRange: IntRange) {
     constructor(type: Material, priceRange: IntRange) : this(ItemStack(type), priceRange)
     init {
-        require(priceRange.first > 0) { "priceRange can't be 0 or less!" }
-        require(priceRange.last <= 64) { "priceRange can't exceed 64!" }
+        require(priceRange.first > 0) { "Ingredient min price can't be 0 or less (got: ${priceRange.first})." }
+        require(priceRange.last <= 64) { "Ingredient max price can't exceed 64 (got: ${priceRange.last})." }
     }
     fun getWithRandomCount(): ItemStack {
         val amount = Random.nextInt(priceRange)
@@ -37,9 +37,9 @@ data class TradingRecipe(
     val chance: Int
 ) {
     init {
-        require(uses.first > 0) { "Trader recipe uses can't be 0 or less!" }
-        require(chance > 0) { "Trader recipe chance can't be 0 or less!" }
-        require(chance <= 100) { "Trader recipe chance can't be over 100!" }
+        require(uses.first > 0) { "Trader recipe uses can't be 0 or less (got: ${uses.first})." }
+        require(chance > 0) { "Trader recipe chance can't be 0 or less (got: $chance)." }
+        require(chance <= 100) { "Trader recipe chance can't be over 100 (got: $chance)." }
     }
     fun getWithRandomIngredientAndUseCount(): MerchantRecipe {
         val recipe = MerchantRecipe(result, Random.nextInt(uses))
@@ -52,33 +52,44 @@ class ConfigManager(private val plugin: InvisiFrames) {
     lateinit var wand: ItemStack
     lateinit var craftingRecipe: CraftingRecipe
     lateinit var wanderingTraderRecipe: TradingRecipe
+    private val configFile = File(plugin.dataFolder, "config.yml")
+    private val settingsManager = SettingsManagerBuilder
+        .withYamlFile(configFile)
+        .configurationData(
+            WandEntry::class.java,
+            RecipeEntry::class.java,
+            WanderingTraderEntry::class.java
+        ).useDefaultMigrationService()
+        .create()
 
-    private val wandSection
-        get() = plugin.config.getConfigurationSectionOrThrow("wand")
-    private val recipeSection
-        get() = plugin.config.getConfigurationSectionOrThrow("recipe")
-    private val wanderingTraderSection
-        get() = plugin.config.getConfigurationSectionOrThrow("wandering_trader")
-
+    fun saveConfig() {
+        settingsManager.save()
+    }
     fun reloadConfig() {
-        plugin.saveDefaultConfig()
-        plugin.reloadConfig()
+        settingsManager.reload()
+        saveConfig()
+        loadConfig()
+    }
+    fun loadConfig() {
         // We first create and then overwrite values, in case they throw error
-        val wand = loadWand()
-        val craftingRecipe = loadCraftingRecipe(wand)
-        val wanderingTraderRecipe = loadWanderingTraderRecipe(wand)
-        this.wand = wand
-        this.craftingRecipe = craftingRecipe
-        this.wanderingTraderRecipe = wanderingTraderRecipe
+        try {
+            val wand = loadWand()
+            val craftingRecipe = loadCraftingRecipe(wand)
+            val wanderingTraderRecipe = loadWanderingTraderRecipe(wand)
+            this.wand = wand
+            this.craftingRecipe = craftingRecipe
+            this.wanderingTraderRecipe = wanderingTraderRecipe
+        } catch (e: IllegalArgumentException) {
+            throw InvalidConfigurationException(e.message, e)
+        }
     }
 
     private fun loadWand(): ItemStack {
-        val section = wandSection
-        val material = section.getMaterial("type")
-        if (material.isAir) throw InvalidConfigurationException("Specified material '$material' is an air type, which is not allowed!")
-        val name = section.getStringOrThrow("name")
-        val lore = section.getStringList("lore")
-        val glow = section.getBoolean("glow")
+        val material = Material.valueOf(settingsManager.getProperty(WandEntry.TYPE))
+        if (material.isAir) throw InvalidConfigurationException("Specified material '${material.name}' is an air type, which is not allowed!")
+        val name = settingsManager.getProperty(WandEntry.NAME)
+        val lore = settingsManager.getProperty(WandEntry.LORE)
+        val glow = settingsManager.getProperty(WandEntry.GLOW)
         return createWand(material, name, lore, glow)
     }
     private fun createWand(material: Material, name: String, lore: List<String>, glow: Boolean): ItemStack {
@@ -96,19 +107,20 @@ class ConfigManager(private val plugin: InvisiFrames) {
     }
 
     private fun loadCraftingRecipe(wand: ItemStack = this.wand): CraftingRecipe {
-        val section = recipeSection
-        val enabled = section.getBoolean("enabled")
-        val amount = section.getInt("amount")
-        val shape = section.getStringList("shape")
+        val enabled = settingsManager.getProperty(RecipeEntry.ENABLED)
+        val shape = settingsManager.getProperty(RecipeEntry.SHAPE)
+        val ingredients = settingsManager.getProperty(RecipeEntry.INGREDIENTS)
+        val amount = settingsManager.getProperty(RecipeEntry.AMOUNT)
         if (shape.size > 3 || shape.size <= 0) throw InvalidConfigurationException("Shape needs to be a list of 1 to 3 rows!")
         for (row in shape) {
             if (row.length > 3 || row.isEmpty()) throw InvalidConfigurationException("Rows can have up to 3 items!")
         }
         val ingredientsList = shape.joinToString(separator = "").toSet()
-        val ingredients = section.getConfigurationSectionOrThrow("ingredients")
         val ingredientMap = HashMap<Char, Material>()
         for (ingredient in ingredientsList) {
-            ingredientMap[ingredient] = ingredients.getMaterial(ingredient.toString())
+            val ingredientName = ingredients[ingredient.toString()]
+                ?: throw InvalidConfigurationException("No such ingredient mapping for key '$ingredient'")
+            ingredientMap[ingredient] = Material.valueOf(ingredientName)
         }
         val recipe = createCraftingRecipe(wand, amount, shape, ingredientMap)
         return CraftingRecipe(enabled, recipe)
@@ -123,52 +135,19 @@ class ConfigManager(private val plugin: InvisiFrames) {
     }
 
     private fun loadWanderingTraderRecipe(wand: ItemStack = this.wand): TradingRecipe {
-        val section = wanderingTraderSection
-        val enabled = section.getBoolean("enabled")
-        val chance = section.getInt("chance")
-        val useSection = section.getConfigurationSectionOrThrow("uses")
-        val uses = sectionToIntRange(useSection)
-        if (uses.first < 1) throw InvalidConfigurationException("${useSection.currentPath}.min can't be less than 1")
-        val ingredientsList = section.getMapList("ingredients")
+        val enabled = settingsManager.getProperty(WanderingTraderEntry.ENABLED)
+        val chance = settingsManager.getProperty(WanderingTraderEntry.CHANCE)
+        val minUses = settingsManager.getProperty(WanderingTraderEntry.MIN_USES)
+        val maxUses = settingsManager.getProperty(WanderingTraderEntry.MAX_USES)
+        val uses = IntRange(minUses, maxUses)
+        if (uses.first < 1) throw InvalidConfigurationException("Wandering Trader recipe minimum uses can't be less than 1")
+        val ingredientsList = settingsManager.getProperty(WanderingTraderEntry.INGREDIENTS)
         if (ingredientsList.size !in 1..2)
-            throw InvalidConfigurationException("${section.currentPath}.ingredients needs to have 1 or 2 ingredients!")
-        val ingredients = ingredientsList.mapIndexed { index, entry ->
-            val sectionPath = "${section.currentPath}.ingredients[$index]"
-            val type = entry["type"] as? String
-                ?: throw InvalidConfigurationException("'$sectionPath.type' is not a string!")
-            val material = Material.matchMaterial(type)
-                ?: throw InvalidConfigurationException("'$type' in '$sectionPath.type' is not a valid material!")
-            val countEntry = entry["count"] as? Map<*, *>
-                ?: throw InvalidConfigurationException("$sectionPath.count is not a map!")
-            val min = countEntry["min"] as? Int
-                ?: throw InvalidConfigurationException("$sectionPath.count.min is not an integer!")
-            val max = countEntry["max"] as? Int
-                ?: throw InvalidConfigurationException("$sectionPath.count.max is not an integer!")
-            val count = IntRange(min, max)
-            Ingredient(material, count)
+            throw InvalidConfigurationException("Wandering Trader needs to have 1 or 2 ingredients!")
+        val ingredients = ingredientsList.map {
+            val material = Material.valueOf(it.type)
+            Ingredient(material, it.count.asRange())
         }
         return TradingRecipe(enabled, wand, uses, ingredients, chance)
     }
-    private fun sectionToIntRange(section: ConfigurationSection): IntRange {
-        val min = section.getInt("min")
-        val max = section.getInt("max")
-        return IntRange(min, max)
-    }
-}
-
-fun FileConfiguration.getConfigurationSectionOrThrow(path: String): ConfigurationSection {
-    return getConfigurationSection(path) ?: throw InvalidConfigurationException("Missing $path section!")
-}
-
-fun ConfigurationSection.getConfigurationSectionOrThrow(path: String): ConfigurationSection {
-    return getConfigurationSection(path) ?: throw InvalidConfigurationException("Missing $currentPath.$path section!")
-}
-
-fun ConfigurationSection.getStringOrThrow(path: String): String {
-    return getString(path) ?: throw InvalidConfigurationException("$currentPath.$path does not contain a string!")
-}
-
-fun ConfigurationSection.getMaterial(path: String): Material {
-    val type = getStringOrThrow(path)
-    return Material.matchMaterial(type) ?: throw InvalidConfigurationException("'$type' in '$currentPath.$path' is not a valid material!")
 }
