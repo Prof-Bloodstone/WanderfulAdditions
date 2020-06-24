@@ -21,8 +21,12 @@ class WandListener(private val plugin: InvisiFrames) : Listener {
         if (event.hand != EquipmentSlot.HAND) return
         val item = event.player.equipment!!.itemInMainHand // Player always has equipment
         val container = item.itemMeta?.persistentDataContainer ?: return
-        if (!container.has(plugin.wandNamespacedKey, plugin.wandPersistentDataType)) return
-        if (container.get(plugin.wandNamespacedKey, plugin.wandPersistentDataType) != plugin.wandPersistentDataValue) return
+        val wand = plugin.wands[WandType.ITEM_FRAME]
+        if (wand == null) {
+            plugin.logIssue("Unable to find item-frame configuration!")
+            return
+        }
+        if (!wand.flag.isIn(container)) return
         // TODO: Update to 1.16
         itemFrame.visible = !itemFrame.visible
         val state = if (itemFrame.visible) "visible" else "invisible"

@@ -8,11 +8,12 @@ plugins {
 
 description 'Simple plugin to let your players make item frames invisible.'
 group 'dev.bloodstone'
-version '0.0.3'
+version '0.0.4'
 
 def mcVersion = '1.15.2-R0.1-SNAPSHOT'
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" }
     maven { url "https://oss.sonatype.org/content/repositories/public/" }
@@ -24,7 +25,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation group: 'co.aikar', name: 'acf-paper', version: '0.5.0-SNAPSHOT'
     implementation group: 'org.spigotmc', name: 'spigot-api', version: mcVersion
-    implementation group: 'dev.bloodstone', name: 'mcutils', version: '0.0.1'
+    implementation group: 'dev.bloodstone', name: 'mcutils', version: '0.0.2-SNAPSHOT'
     implementation group: 'ch.jalu', name: 'configme', version: '1.1.0'
     implementation group: 'org.bstats', name: 'bstats-bukkit', version: '1.7'
 }

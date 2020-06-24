@@ -4,12 +4,21 @@ package dev.bloodstone.invisiframes
 import ch.jalu.configme.Comment
 import ch.jalu.configme.SettingsHolder
 import ch.jalu.configme.configurationdata.CommentsConfiguration
-import ch.jalu.configme.properties.MapProperty
-import ch.jalu.configme.properties.PropertyInitializer.listProperty
-import ch.jalu.configme.properties.PropertyInitializer.newProperty
-import ch.jalu.configme.properties.StringListProperty
-import ch.jalu.configme.properties.types.BeanPropertyType
-import ch.jalu.configme.properties.types.PrimitivePropertyType
+import ch.jalu.configme.properties.Property
+import ch.jalu.configme.properties.PropertyInitializer.newBeanProperty
+import dev.bloodstone.mcutils.extensions.itemstack.addGlow
+import dev.bloodstone.mcutils.extensions.itemstack.amount
+import dev.bloodstone.mcutils.extensions.itemstack.lore
+import dev.bloodstone.mcutils.extensions.itemstack.name
+import dev.bloodstone.mcutils.recipes.RandomizedItemStack
+import dev.bloodstone.mcutils.recipes.TradingRecipe
+import dev.bloodstone.mcutils.recipes.WanderingTraderRecipe
+import org.bukkit.Material
+import org.bukkit.NamespacedKey
+import org.bukkit.configuration.InvalidConfigurationException
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.ShapedRecipe
+import org.bukkit.plugin.Plugin
 
 const val TYPE_URL = "https://papermc.io/javadocs/paper/1.15/org/bukkit/Material.html"
 const val SUPPORTS_COLOR_CODES = "Supports color codes escaped by '&' sign."
@@ -26,64 +35,74 @@ open class CommentedSettingsHolder : SettingsHolder {
     }
 }
 
-object WandEntry : CommentedSettingsHolder() {
-    override val basePath = "wand"
-    override val sectionComment = arrayOf(
-        "Configure the wand that can be used to toggle item frame visibility states.",
-        "It will be the result of crafting/trading."
-    )
+data class WandItemConfig(
+    var type: String = "WOODEN_SWORD",
+    var name: String = "&6Magic Wand",
+    var lore: List<String> = emptyList(),
+    var glow: Boolean = true
+) {
+    fun validate() {
+        if (material.isAir)
+            throw InvalidConfigurationException("Specified material '${material.name}' is an air type, which is not allowed!")
+    }
+    val material: Material
+        get() {
+            return Material.valueOf(type)
+        }
 
-    @JvmField
-    @Comment("The item type that'll be used for the wand.", "For possible values, see: $TYPE_URL")
-    var TYPE = newProperty("$basePath.type", "WOODEN_SWORD")
-
-    @JvmField
-    @Comment(SUPPORTS_COLOR_CODES)
-    var NAME = newProperty("$basePath.name", "&6Item Frame Wand")
-
-    @JvmField
-    @Comment("Lore is shown under the item name.", SUPPORTS_COLOR_CODES)
-    var LORE = StringListProperty("$basePath.lore", arrayListOf(
-        "&2Now you see me,",
-        "&4now you don't"
-    ))
-
-    @JvmField
-    @Comment("Whether the wand should have a glow or not.")
-    var GLOW = newProperty("$basePath.glow", true)
+    fun asItemStack(): ItemStack {
+        return ItemStack(material)
+            .amount(1)
+            .name(name)
+            .lore(lore)
+            .also {
+                if (glow) {
+                    it.addGlow()
+                }
+            }
+    }
 }
 
-object RecipeEntry : CommentedSettingsHolder() {
-    override val basePath = "recipe"
-    override val sectionComment = arrayOf("Configure crafting recipe for the wand.")
+data class CraftingConfig(
+    var isEnabled: Boolean = false,
+    var shape: List<String> = emptyList(),
+    var ingredients: Map<String, String> = emptyMap(),
+    var amount: Int = 1
+) {
+    val materializedIngredients: Map<Char, Material>
+        get() {
+            return ingredients.mapValues { (_, materialName) ->
+                getValidatedMaterial(materialName)
+            }.mapKeys { (key, _) ->
+                require(key.length == 1)
+                key[0]
+            }
+        }
 
-    @JvmField
-    var ENABLED = newProperty("$basePath.enabled", true)
+    fun validate() {
+        if (shape.size > 3 || shape.isEmpty()) throw InvalidConfigurationException("Shape needs to be a list of 1 to 3 rows!")
+        for (row in shape) {
+            if (row.length > 3 || row.isEmpty()) throw InvalidConfigurationException("Rows can have up to 3 items!")
+        }
+        ingredients.keys.forEach { ingredientKey ->
+            if (ingredientKey.length != 1)
+                throw InvalidConfigurationException("Expected 1 char long ingredient keys - got '$ingredientKey' instead.")
+        }
+        val ingredientsList = shape.joinToString(separator = "").toSet()
+        for (ingredient in ingredientsList) {
+            materializedIngredients[ingredient]
+                ?: throw InvalidConfigurationException("No such ingredient mapping for key '$ingredient'")
+        }
+    }
 
-    @JvmField
-    @Comment(
-        "The shape player needs to put the ingredients in to craft the wand.",
-        "Needs to be a list of 1 to 3 rows, each with 1 to 3 ingredient placeholders."
-    )
-    var SHAPE = StringListProperty("$basePath.shape", arrayListOf(
-        "E",
-        "E",
-        "S"
-    ))
-
-    @JvmField
-    @Comment(
-        "Mapping between ingredient placeholder (used in shape), and ingredient type.",
-        "For possible values, see: $TYPE_URL"
-    )
-    var INGREDIENTS = MapProperty("$basePath.ingredients", mapOf(
-        "E" to "EMERALD",
-        "S" to "STICK"
-    ), PrimitivePropertyType.STRING)
-
-    @JvmField
-    @Comment("How many wands should player be given.")
-    var AMOUNT = newProperty("$basePath.amount", 1)
+    fun asRecipe(result: ItemStack, namespacedKey: NamespacedKey): ShapedRecipe {
+        val recipe = ShapedRecipe(namespacedKey, result.clone().amount(amount))
+        recipe.shape(*shape.toTypedArray())
+        for ((char, material) in materializedIngredients) {
+            recipe.setIngredient(char, material)
+        }
+        return recipe
+    }
 }
 
 data class RangeField(var min: Int = 20, var max: Int = 40) {
@@ -92,42 +111,120 @@ data class RangeField(var min: Int = 20, var max: Int = 40) {
     }
 }
 
-data class TradeIngredientField(var type: String = "EMERALD", var count: RangeField = RangeField())
+data class TradeIngredientField(var type: String = "EMERALD", var count: RangeField = RangeField()) {
+    val material: Material
+            get() = getValidatedMaterial(type)
+    fun validate() {
+        material
+    }
+}
 
-object WanderingTraderEntry : CommentedSettingsHolder() {
-    override val basePath = "wandering_trader"
-    override val sectionComment = arrayOf("Configure Wandering Trader selling the wand.")
-
-    private val usesPath = "$basePath.uses"
-
-    override fun registerComments(conf: CommentsConfiguration?) {
-        super.registerComments(conf)
-        conf?.setComment(usesPath, "How many wands will be available for trade.")
+data class WanderingTraderConfig(
+    var isEnabled: Boolean = false,
+    var chance: Int = 5,
+    var uses: RangeField = RangeField(2, 5),
+    var ingredients: List<TradeIngredientField> = listOf(
+        TradeIngredientField()
+    )
+) {
+    fun validate() {
+        ingredients.forEach(TradeIngredientField::validate)
+    }
+    fun asTradingRecipe(result: ItemStack): TradingRecipe {
+        val tradingIngredients = ingredients.map {
+            RandomizedItemStack(it.material, it.count.asRange())
+        }
+        return TradingRecipe(result, uses.asRange(), tradingIngredients)
     }
 
-    @JvmField
-    var ENABLED = newProperty("$basePath.enabled", true)
+    fun asWanderingTraderRecipe(plugin: Plugin, result: ItemStack): WanderingTraderRecipe {
+        return WanderingTraderRecipe(plugin, chance, asTradingRecipe(result))
+    }
+}
 
-    @JvmField
-    @Comment("What are the chances of a wandering trader having the recipe - from 1 to 100")
-    var CHANCE = newProperty("$basePath.chance", 10)
+data class WandConfig(
+    var item: WandItemConfig = WandItemConfig(),
+    var crafting: CraftingConfig = CraftingConfig(),
+    var wandering_trader: WanderingTraderConfig = WanderingTraderConfig()
+) {
+    fun validate() {
+        item.validate()
+        crafting.validate()
+        wandering_trader.validate()
+    }
+}
 
-    @JvmField
-    var MIN_USES = newProperty("$usesPath.min", 2)
+private fun getValidatedMaterial(name: String): Material {
+    return Material.matchMaterial(name)
+        ?: throw InvalidConfigurationException("Unable to find material '$name'")
+}
 
-    @JvmField
-    var MAX_USES = newProperty("$usesPath.max", 5)
-
-    @JvmField
-    @Comment(
-        "List of 1 or 2 ingredients required to buy the wand.",
-        "For available types, see: $TYPE_URL",
-        "A random amount of items will be chosen between `count.min` and `count.max`."
+object WandConfigEntries : CommentedSettingsHolder() {
+    override val basePath = "wands"
+    override val sectionComment = arrayOf(
+        "Configure wands appearance and ways to get them."
     )
-    var INGREDIENTS = listProperty(BeanPropertyType.of(TradeIngredientField::class.java))
-        .path("$basePath.ingredients")
-        .defaultValue(arrayListOf(
-            TradeIngredientField()
-        ))
-        .build()
+
+    @JvmField
+    @Comment("Wand that let's you toggle between visible and invisible item frame.")
+    var ITEM_FRAME: Property<WandConfig> = newBeanProperty(
+        WandConfig::class.java,
+        "$basePath.item_frame",
+        WandConfig(
+            item = WandItemConfig(
+                type = "WOODEN_SWORD",
+                name = "&6Item Frame Wand",
+                lore = listOf(
+                    "&2Now you see me,",
+                    "&4now you don't"
+                ),
+                glow = true
+            ),
+            crafting = CraftingConfig(
+                isEnabled = false,
+                shape = listOf(
+                    "E",
+                    "E",
+                    "S"
+                ),
+                ingredients = mapOf(
+                    "S" to "STICK",
+                    "E" to "EMERALD"
+                ),
+                amount = 1
+            )
+        )
+    )
+
+    /*
+    @JvmField
+    @Comment("Wand that let's you control armor stands - requires https://github.com/Prof-Bloodstone/ArmorStandEditor")
+    var ARMOR_STAND = newBeanProperty(
+        WandConfig::class.java,
+        "$basePath.armor_stand",
+        WandConfig(
+            item = WandItemConfig(
+                type = "WOODEN_HOE",
+                name = "&6Armor Stand Wand",
+                lore = listOf(
+                    "Controlling the moves!"
+                ),
+                glow = true
+            ),
+            crafting = CraftingConfig(
+                isEnabled = false,
+                shape = listOf(
+                    "E",
+                    "S",
+                    "S"
+                ),
+                ingredients = mapOf(
+                    "S" to "STICK",
+                    "E" to "EMERALD"
+                ),
+                amount = 1
+            )
+        )
+    )
+    */
 }

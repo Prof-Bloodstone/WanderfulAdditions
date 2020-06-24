@@ -2,34 +2,25 @@
 package dev.bloodstone.invisiframes
 
 import org.bstats.bukkit.Metrics
-import org.bukkit.NamespacedKey
 import org.bukkit.configuration.InvalidConfigurationException
-import org.bukkit.event.entity.CreatureSpawnEvent
-import org.bukkit.inventory.ItemStack
-import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 
 public class InvisiFrames() : JavaPlugin() {
-    val wandNamespacedKey = NamespacedKey(this, "wand")
-    val wandPersistentDataType = PersistentDataType.BYTE!!
-    val wandPersistentDataValue: Byte = 1
 
-    val recipeNamespacedKey = NamespacedKey(this, "wandRecipe")
-
-    val bstatsPluginId = 7788
+    private val issuesURL = "https://github.com/Prof-Bloodstone/InvisiFrames/issues"
+    private val issuesLog = arrayOf(
+        "This is probably an error - please report to $issuesURL.",
+        "Include all relevant logs and the configuration file."
+    ).joinToString(separator = "\n")
+    private val bstatsPluginId = 7788
 
     private val configManager = ConfigManager(this)
-    private val wanderingTraderListener = WanderingTraderListener(this)
     private var isFullyEnabled = false
+    val wands
+        get() = configManager.wands
 
-    val wand: ItemStack
-        get() = configManager.wand
-
-    val craftingRecipe: CraftingRecipe
-        get() = configManager.craftingRecipe
-
-    val wanderingTraderRecipe: TradingRecipe
-        get() = configManager.wanderingTraderRecipe
+    val enabledWands
+        get() = wands.values.filter { wand -> wand.isEnabled }
 
     override fun onEnable() {
         super.onEnable()
@@ -45,26 +36,27 @@ public class InvisiFrames() : JavaPlugin() {
         val commandManager = CommandManager(this)
         commandManager.registerCommands()
         server.pluginManager.registerEvents(WandListener(this), this)
-        registerWanderingTrader()
-        registerRecipe()
+        registerAll()
         isFullyEnabled = true
     }
 
     fun reload() {
         // Reload configuration
-        unregisterRecipe()
-        unregisterWanderingTrader()
+        unregisterAll()
         try {
             configManager.reloadConfig()
         } finally {
-            registerRecipe()
-            registerWanderingTrader()
+            registerAll()
         }
+    }
+
+    fun logIssue(msg: String) {
+        logger.severe("$msg\n$issuesLog")
     }
 
     override fun onDisable() {
         super.onDisable()
-        if (isFullyEnabled) unregisterRecipe()
+        if (isFullyEnabled) unregisterAll()
         // Listeners and commands are disabled automatically
         isFullyEnabled = false
     }
@@ -72,27 +64,34 @@ public class InvisiFrames() : JavaPlugin() {
     private fun registerBstats() {
         val metrics = Metrics(this, bstatsPluginId)
 
-        val obtainMethods = mutableListOf<String>()
-        if (craftingRecipe.isEnabled) obtainMethods.add("Crafting")
-        if (wanderingTraderRecipe.isEnabled) obtainMethods.add("WanderingTrader")
-        val obtainMethodString = if (obtainMethods.isNotEmpty()) obtainMethods.joinToString(separator = " + ") else "None"
-        metrics.addCustomChart(Metrics.SimplePie("wand_obtaining_method") { -> obtainMethodString })
+        for (wand_type in WandType.values()) {
+            val obtainMethods = mutableListOf<String>()
+            val wand = wands[wand_type]
+            if (wand != null) {
+                if (wand.crafting.isEnabled) obtainMethods.add("Crafting")
+                if (wand.trading.isEnabled) obtainMethods.add("WanderingTrader")
+            }
+            val obtainMethodString =
+                if (obtainMethods.isNotEmpty()) obtainMethods.joinToString(separator = " + ") else "None"
+            metrics.addCustomChart(Metrics.SimplePie("${wand_type.toString().toLowerCase()}_wand_obtaining_method") { -> obtainMethodString })
+        }
     }
 
-    private fun registerWanderingTrader() {
-        if (wanderingTraderRecipe.isEnabled) server.pluginManager.registerEvents(wanderingTraderListener, this)
+    private fun registerAll() {
+        for (wand in wands.values) {
+            if (wand.isEnabled) {
+                if (wand.crafting.isEnabled) server.addRecipe(wand.crafting.entry)
+                if (wand.trading.isEnabled) wand.trading.entry.register()
+            }
+        }
     }
 
-    private fun unregisterWanderingTrader() {
-        if (wanderingTraderRecipe.isEnabled)
-            CreatureSpawnEvent.getHandlerList().unregister(wanderingTraderListener)
-    }
-
-    private fun registerRecipe() {
-        if (craftingRecipe.isEnabled) server.addRecipe(craftingRecipe.recipe)
-    }
-
-    private fun unregisterRecipe() {
-        if (craftingRecipe.isEnabled) server.removeRecipe(recipeNamespacedKey)
+    private fun unregisterAll() {
+        for (wand in wands.values) {
+            if (wand.isEnabled) {
+                if (wand.crafting.isEnabled) server.removeRecipe(wand.crafting.entry.key)
+                if (wand.trading.isEnabled) wand.trading.entry.unregister()
+            }
+        }
     }
 }
