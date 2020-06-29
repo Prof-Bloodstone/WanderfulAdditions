@@ -8,9 +8,9 @@ plugins {
 
 description 'Simple plugin to let your players make item frames invisible.'
 group 'dev.bloodstone'
-version '0.0.4'
+version '0.1.0'
 
-def mcVersion = '1.15.2-R0.1-SNAPSHOT'
+def mcVersion = '1.16.1-R0.1-SNAPSHOT'
 
 repositories {
     mavenLocal()

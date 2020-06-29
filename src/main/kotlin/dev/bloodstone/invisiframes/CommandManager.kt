@@ -26,17 +26,19 @@ class CommandManager(private val plug: InvisiFrames) : PaperCommandManager(plug)
         @Suppress("DEPRECATION")
         enableUnstableAPI("help")
 
+        registerCompletions()
+        registerConditions()
         registerCommand(CommandIF())
     }
 
     private fun registerCompletions() {
-        commandCompletions.registerCompletion("enabledWands") { _ ->
-            plug.enabledWands.map { it.toString() }
+        commandCompletions.registerCompletion("enabledwands") { _ ->
+            plug.wands.filter { it.value.isEnabled }.keys.map { it.toString() }
         }
     }
 
     private fun registerConditions() {
-        commandConditions.addCondition(String::class.java,"enabledWand") { _, _, value ->
+        commandConditions.addCondition(String::class.java, "enabledwand") { _, _, value ->
             if (value != null) {
                 try {
                     WandType.valueOf(value.toUpperCase())
@@ -81,8 +83,8 @@ private class CommandIF() : BaseCommand() {
     @Subcommand("wand")
     @Description("Give yourself (or others) the magic wand")
     @CommandPermission("invisiframes.wand")
-    @CommandCompletion("@enabledWands *")
-    fun onWandGive(sender: CommandSender, @Conditions("enabledWand") wand: String, @Flags("defaultself") player: Player) {
+    @CommandCompletion("@enabledwands @players")
+    fun onWandGive(sender: CommandSender, @Conditions("enabledwand") wand: String, @Flags("defaultself") player: Player) {
         handleWandGive(sender, wand, player)
     }
 
