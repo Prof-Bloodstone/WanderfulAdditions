@@ -2,6 +2,7 @@
 package dev.bloodstone.invisiframes
 
 import ch.jalu.configme.SettingsManagerBuilder
+import ch.jalu.configme.exception.ConfigMeException
 import ch.jalu.configme.properties.Property
 import dev.bloodstone.mcutils.EnableableEntry
 import dev.bloodstone.mcutils.PersistentNamespacedFlag
@@ -47,6 +48,8 @@ class ConfigManager(private val plugin: InvisiFrames) {
         try {
             wands = loadWandConfig()
         } catch (e: IllegalArgumentException) {
+            throw InvalidConfigurationException(e.message, e)
+        } catch (e: ConfigMeException) {
             throw InvalidConfigurationException(e.message, e)
         }
     }
