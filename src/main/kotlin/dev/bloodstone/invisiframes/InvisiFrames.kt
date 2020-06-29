@@ -32,6 +32,7 @@ public class InvisiFrames() : JavaPlugin() {
             pluginLoader.disablePlugin(this)
             return
         }
+        getArmorStandEditorWandFlag()
         registerBstats()
         val commandManager = CommandManager(this)
         commandManager.registerCommands()

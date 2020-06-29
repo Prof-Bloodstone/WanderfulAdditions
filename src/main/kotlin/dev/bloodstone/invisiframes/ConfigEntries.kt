@@ -20,9 +20,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.ShapedRecipe
 import org.bukkit.plugin.Plugin
 
-const val TYPE_URL = "https://papermc.io/javadocs/paper/1.15/org/bukkit/Material.html"
-const val SUPPORTS_COLOR_CODES = "Supports color codes escaped by '&' sign."
-
 open class CommentedSettingsHolder : SettingsHolder {
     protected open val basePath: String? = null
     protected open val sectionComment: Array<String>? = null
@@ -196,7 +193,6 @@ object WandConfigEntries : CommentedSettingsHolder() {
         )
     )
 
-    /*
     @JvmField
     @Comment("Wand that let's you control armor stands - requires https://github.com/Prof-Bloodstone/ArmorStandEditor")
     var ARMOR_STAND = newBeanProperty(
@@ -226,5 +222,4 @@ object WandConfigEntries : CommentedSettingsHolder() {
             )
         )
     )
-    */
 }

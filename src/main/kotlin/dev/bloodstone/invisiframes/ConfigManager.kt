@@ -23,7 +23,8 @@ data class Wand(
 )
 
 enum class WandType {
-    ITEM_FRAME
+    ITEM_FRAME,
+    ARMOR_STAND
 }
 
 class ConfigManager(private val plugin: InvisiFrames) {
@@ -59,7 +60,7 @@ class ConfigManager(private val plugin: InvisiFrames) {
         val craftingNamespacedKey: NamespacedKey
     )
     private fun loadWandConfig(): Map<WandType, Wand> {
-        val wandInfo = mapOf(
+        val wandInfo = mutableMapOf(
             WandType.ITEM_FRAME to WandInfo(
                 WandConfigEntries.ITEM_FRAME,
                 PersistentNamespacedFlag(
@@ -70,6 +71,14 @@ class ConfigManager(private val plugin: InvisiFrames) {
                 NamespacedKey(plugin, "item_frame_crafting")
             )
         )
+        try {
+            wandInfo[WandType.ARMOR_STAND] = WandInfo(
+                WandConfigEntries.ARMOR_STAND,
+                getArmorStandEditorWandFlag(),
+                NamespacedKey(plugin, "armor_stand_crafting")
+            )
+        } catch (_: PluginNotFoundException) {
+        } catch (_: UnsupportedPluginException) {}
         return wandInfo.mapValues { (_, v) ->
             val config = settingsManager.getProperty(v.property)
             config.validate()

@@ -38,7 +38,7 @@ class CommandManager(private val plug: InvisiFrames) : PaperCommandManager(plug)
     }
 
     private fun registerConditions() {
-        commandConditions.addCondition(String::class.java, "enabledwand") { _, _, value ->
+        commandConditions.addCondition(String::class.java, "enabledwands") { _, _, value ->
             if (value != null) {
                 try {
                     WandType.valueOf(value.toUpperCase())
@@ -84,7 +84,7 @@ private class CommandIF() : BaseCommand() {
     @Description("Give yourself (or others) the magic wand")
     @CommandPermission("invisiframes.wand")
     @CommandCompletion("@enabledwands @players")
-    fun onWandGive(sender: CommandSender, @Conditions("enabledwand") wand: String, @Flags("defaultself") player: Player) {
+    fun onWandGive(sender: CommandSender, @Conditions("enabledwands") wand: String, @Flags("defaultself") player: Player) {
         handleWandGive(sender, wand, player)
     }
 
