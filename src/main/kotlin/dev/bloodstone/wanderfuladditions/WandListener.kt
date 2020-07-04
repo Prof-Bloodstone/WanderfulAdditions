@@ -1,15 +1,17 @@
 /* Licensed under MIT */
-package dev.bloodstone.invisiframes
+package dev.bloodstone.wanderfuladditions
 
+import dev.bloodstone.wanderfuladditions.WanderfulAdditions
 import org.bukkit.entity.ItemFrame
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.EquipmentSlot
 
-class WandListener(private val plugin: InvisiFrames) : Listener {
+class WandListener(private val plugin: WanderfulAdditions) : Listener {
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onPlayerInteractEntityEvent(event: PlayerInteractEntityEvent) {
         val itemFrame = event.rightClicked as? ItemFrame ?: return
         if (event.hand != EquipmentSlot.HAND) return

@@ -1,5 +1,5 @@
 /* Licensed under MIT */
-package dev.bloodstone.invisiframes
+package dev.bloodstone.wanderfuladditions
 
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.CommandHelp
@@ -20,7 +20,7 @@ import org.bukkit.configuration.InvalidConfigurationException
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 
-class CommandManager(private val plug: InvisiFrames) : PaperCommandManager(plug) {
+class CommandManager(private val plug: WanderfulAdditions) : PaperCommandManager(plug) {
     fun registerCommands() {
         // enable unstable api to use help
         @Suppress("DEPRECATION")
@@ -28,7 +28,7 @@ class CommandManager(private val plug: InvisiFrames) : PaperCommandManager(plug)
 
         registerCompletions()
         registerConditions()
-        registerCommand(CommandIF())
+        registerCommand(CommandWA())
     }
 
     private fun registerCompletions() {
@@ -51,10 +51,10 @@ class CommandManager(private val plug: InvisiFrames) : PaperCommandManager(plug)
     }
 }
 
-@CommandAlias("invisiframes|if")
-private class CommandIF() : BaseCommand() {
+@CommandAlias("wanderfuladditions|wa")
+private class CommandWA() : BaseCommand() {
     @Dependency
-    private lateinit var plugin: InvisiFrames
+    private lateinit var plugin: WanderfulAdditions
 
     private fun giveWand(player: Player, wand: ItemStack) {
         player.inventory.addItem(wand)
@@ -80,9 +80,9 @@ private class CommandIF() : BaseCommand() {
         giveWand(player, wand.item)
     }
 
-    @Subcommand("wand")
+    @Subcommand("give")
     @Description("Give yourself (or others) the magic wand")
-    @CommandPermission("invisiframes.wand")
+    @CommandPermission("wanderfuladditions.give")
     @CommandCompletion("@enabledwands @players")
     fun onWandGive(sender: CommandSender, @Conditions("enabledwands") wand: String, @Flags("defaultself") player: Player) {
         handleWandGive(sender, wand, player)
@@ -90,7 +90,7 @@ private class CommandIF() : BaseCommand() {
 
     @Subcommand("reload")
     @Description("Reload plugin configuration")
-    @CommandPermission("invisiframes.reload")
+    @CommandPermission("wanderfuladditions.reload")
     fun onReload(sender: CommandSender) {
         try {
             plugin.reload()

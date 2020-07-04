@@ -1,5 +1,5 @@
 /* Licensed under MIT */
-package dev.bloodstone.invisiframes
+package dev.bloodstone.wanderfuladditions
 
 import ch.jalu.configme.Comment
 import ch.jalu.configme.SettingsHolder
@@ -140,6 +140,7 @@ data class WanderingTraderConfig(
 }
 
 data class WandConfig(
+    var isEnabled: Boolean = true,
     var item: WandItemConfig = WandItemConfig(),
     var crafting: CraftingConfig = CraftingConfig(),
     var wandering_trader: WanderingTraderConfig = WanderingTraderConfig()

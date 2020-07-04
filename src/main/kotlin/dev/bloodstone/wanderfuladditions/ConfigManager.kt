@@ -1,12 +1,15 @@
 /* Licensed under MIT */
-package dev.bloodstone.invisiframes
+package dev.bloodstone.wanderfuladditions
 
 import ch.jalu.configme.SettingsManagerBuilder
 import ch.jalu.configme.exception.ConfigMeException
 import ch.jalu.configme.properties.Property
+import com.sun.org.apache.xpath.internal.operations.Bool
 import dev.bloodstone.mcutils.EnableableEntry
 import dev.bloodstone.mcutils.PersistentNamespacedFlag
 import dev.bloodstone.mcutils.recipes.WanderingTraderRecipe
+import dev.bloodstone.wanderfuladditions.WanderfulAdditions
+import dev.bloodstone.wanderfuladditions.plugin_wrappers.ArmorStandEditorWrapper
 import java.io.File
 import org.bukkit.NamespacedKey
 import org.bukkit.configuration.InvalidConfigurationException
@@ -27,8 +30,10 @@ enum class WandType {
     ARMOR_STAND
 }
 
-class ConfigManager(private val plugin: InvisiFrames) {
+class ConfigManager(private val plugin: WanderfulAdditions) {
     lateinit var wands: Map<WandType, Wand>
+    private val aseWrapper = ArmorStandEditorWrapper()
+    private val pluginListener = PluginListener(plugin, listOf(aseWrapper))
     private val configFile = File(plugin.dataFolder, "config.yml")
     private val settingsManager = SettingsManagerBuilder
         .withYamlFile(configFile)
@@ -37,12 +42,17 @@ class ConfigManager(private val plugin: InvisiFrames) {
         ).useDefaultMigrationService()
         .create()
 
+    fun init() {
+        plugin.server.pluginManager.registerEvents(pluginListener, plugin)
+    }
     fun saveConfig() {
         settingsManager.save()
     }
-    fun reloadConfig() {
-        settingsManager.reload()
-        saveConfig()
+    fun reloadConfig(fromDisk: Boolean = true) {
+        if (fromDisk) {
+            settingsManager.reload()
+            saveConfig()
+        }
         loadConfig()
     }
     fun loadConfig() {
@@ -71,19 +81,23 @@ class ConfigManager(private val plugin: InvisiFrames) {
                 NamespacedKey(plugin, "item_frame_crafting")
             )
         )
-        try {
+        if (aseWrapper.isLoaded()) {
             wandInfo[WandType.ARMOR_STAND] = WandInfo(
                 WandConfigEntries.ARMOR_STAND,
-                getArmorStandEditorWandFlag(),
+                aseWrapper.getFlag(),
                 NamespacedKey(plugin, "armor_stand_crafting")
             )
-        } catch (_: PluginNotFoundException) {
-        } catch (_: UnsupportedPluginException) {}
-        return wandInfo.mapValues { (_, v) ->
+        }
+        val config = wandInfo.mapValues { (_, v) ->
             val config = settingsManager.getProperty(v.property)
             config.validate()
             loadSingleWandConfig(config, v.flag, v.craftingNamespacedKey)
         }
+        val aseConfig = config[WandType.ARMOR_STAND]
+        if (aseConfig != null) {
+            aseWrapper.configure(aseConfig)
+        }
+        return config
     }
 
     private fun loadSingleWandConfig(config: WandConfig, itemFlag: PersistentNamespacedFlag<*>, craftingNamespacedKey: NamespacedKey): Wand {
@@ -92,7 +106,7 @@ class ConfigManager(private val plugin: InvisiFrames) {
         val craftingRecipe = config.crafting.asRecipe(wand, craftingNamespacedKey)
         val wanderingTraderRecipe = config.wandering_trader.asWanderingTraderRecipe(plugin, wand)
         return Wand(
-            true,
+            config.isEnabled,
             wand,
             EnableableEntry(config.crafting.isEnabled, craftingRecipe),
             EnableableEntry(config.wandering_trader.isEnabled, wanderingTraderRecipe),

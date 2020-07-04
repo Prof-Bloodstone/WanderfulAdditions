@@ -27,7 +27,7 @@ jobs:
       - name: Build with Gradle
         run: |
           ./gradlew shadowJar
-          mv -v build/libs/InvisiFrames{-*,}.jar
+          mv -v build/libs/WanderfulAdditions{-*,}.jar
       - name: Prepare release description
         id: prepare_release_description
         shell: bash
@@ -64,7 +64,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: '${{ steps.create_release.outputs.upload_url }}'
-          asset_path: 'build/libs/InvisiFrames.jar'
-          asset_name: InvisiFrames.jar
+          asset_path: 'build/libs/WanderfulAdditions.jar'
+          asset_name: WanderfulAdditions.jar
           asset_content_type: application/zip
 

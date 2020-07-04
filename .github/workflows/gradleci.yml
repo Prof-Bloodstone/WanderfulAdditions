@@ -37,5 +37,5 @@ jobs:
       uses: actions/upload-artifact@v2
       if: ${{ success() }}
       with:
-        name: InvisiFrames.jar
-        path: 'build/libs/InvisiFrames*.jar'
+        name: WanderfulAdditions.jar
+        path: 'build/libs/WanderfulAdditions*.jar'

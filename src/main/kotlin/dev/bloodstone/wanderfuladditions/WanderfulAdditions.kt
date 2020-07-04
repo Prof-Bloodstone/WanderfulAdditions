@@ -1,16 +1,17 @@
 /* Licensed under MIT */
-package dev.bloodstone.invisiframes
+package dev.bloodstone.wanderfuladditions
 
 import org.bstats.bukkit.Metrics
 import org.bukkit.configuration.InvalidConfigurationException
 import org.bukkit.plugin.java.JavaPlugin
 
-public class InvisiFrames() : JavaPlugin() {
+public class WanderfulAdditions() : JavaPlugin() {
 
-    private val issuesURL = "https://github.com/Prof-Bloodstone/InvisiFrames/issues"
+    private val issuesURL = "https://github.com/Prof-Bloodstone/WanderfulAdditions/issues"
     private val issuesLog = arrayOf(
         "This is probably an error - please report to $issuesURL.",
-        "Include all relevant logs and the configuration file."
+        "Include all relevant logs and the configuration file.",
+        "It's advised to restart the server since plugin might be in a partial state. Sorry :("
     ).joinToString(separator = "\n")
     private val bstatsPluginId = 7788
 
@@ -24,6 +25,7 @@ public class InvisiFrames() : JavaPlugin() {
 
     override fun onEnable() {
         super.onEnable()
+        configManager.init()
         try {
             configManager.reloadConfig()
         } catch (e: InvalidConfigurationException) {
@@ -32,7 +34,6 @@ public class InvisiFrames() : JavaPlugin() {
             pluginLoader.disablePlugin(this)
             return
         }
-        getArmorStandEditorWandFlag()
         registerBstats()
         val commandManager = CommandManager(this)
         commandManager.registerCommands()
@@ -41,11 +42,11 @@ public class InvisiFrames() : JavaPlugin() {
         isFullyEnabled = true
     }
 
-    fun reload() {
+    fun reload(fromDisk: Boolean = true) {
         // Reload configuration
         unregisterAll()
         try {
-            configManager.reloadConfig()
+            configManager.reloadConfig(fromDisk)
         } finally {
             registerAll()
         }
@@ -68,7 +69,7 @@ public class InvisiFrames() : JavaPlugin() {
         for (wand_type in WandType.values()) {
             val obtainMethods = mutableListOf<String>()
             val wand = wands[wand_type]
-            if (wand != null) {
+            if (wand != null && wand.isEnabled) {
                 if (wand.crafting.isEnabled) obtainMethods.add("Crafting")
                 if (wand.trading.isEnabled) obtainMethods.add("WanderingTrader")
             }
