@@ -1,7 +1,6 @@
 /* Licensed under MIT */
 package dev.bloodstone.wanderfuladditions
 
-import dev.bloodstone.wanderfuladditions.WanderfulAdditions
 import org.bukkit.entity.ItemFrame
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority

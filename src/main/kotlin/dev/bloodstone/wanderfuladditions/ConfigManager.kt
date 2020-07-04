@@ -4,11 +4,9 @@ package dev.bloodstone.wanderfuladditions
 import ch.jalu.configme.SettingsManagerBuilder
 import ch.jalu.configme.exception.ConfigMeException
 import ch.jalu.configme.properties.Property
-import com.sun.org.apache.xpath.internal.operations.Bool
 import dev.bloodstone.mcutils.EnableableEntry
 import dev.bloodstone.mcutils.PersistentNamespacedFlag
 import dev.bloodstone.mcutils.recipes.WanderingTraderRecipe
-import dev.bloodstone.wanderfuladditions.WanderfulAdditions
 import dev.bloodstone.wanderfuladditions.plugin_wrappers.ArmorStandEditorWrapper
 import java.io.File
 import org.bukkit.NamespacedKey
