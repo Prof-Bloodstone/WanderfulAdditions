@@ -37,7 +37,7 @@ public class WanderfulAdditions() : JavaPlugin() {
         registerBstats()
         val commandManager = CommandManager(this)
         commandManager.registerCommands()
-        server.pluginManager.registerEvents(WandListener(this), this)
+        server.pluginManager.registerEvents(ItemFrameListener(this), this)
         registerAll()
         isFullyEnabled = true
     }
