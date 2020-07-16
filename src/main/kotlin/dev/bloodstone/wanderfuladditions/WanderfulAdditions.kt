@@ -13,7 +13,7 @@ public class WanderfulAdditions() : JavaPlugin() {
         "Include all relevant logs and the configuration file.",
         "It's advised to restart the server since plugin might be in a partial state. Sorry :("
     ).joinToString(separator = "\n")
-    private val bstatsPluginId = 7788
+    private val bstatsPluginId = 8169
 
     private val configManager = ConfigManager(this)
     private var isFullyEnabled = false
@@ -72,6 +72,8 @@ public class WanderfulAdditions() : JavaPlugin() {
             if (wand != null && wand.isEnabled) {
                 if (wand.crafting.isEnabled) obtainMethods.add("Crafting")
                 if (wand.trading.isEnabled) obtainMethods.add("WanderingTrader")
+            } else {
+                obtainMethods.add("Disabled")
             }
             val obtainMethodString =
                 if (obtainMethods.isNotEmpty()) obtainMethods.joinToString(separator = " + ") else "None"
