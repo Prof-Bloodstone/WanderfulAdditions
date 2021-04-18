@@ -1,0 +1,5 @@
+main: dev.bloodstone.wanderfuladditions.WanderfulAdditions
+name: WanderfulAdditions
+version: ${version}
+description: Provides wonderful wands for your Paper/Spigot server.
+api-version: 1.16
