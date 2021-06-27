@@ -5,14 +5,13 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocatio
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.3.72"
-    id("kr.entree.spigradle") version "1.3.1"
     id("com.diffplug.gradle.spotless") version "3.29.0"
     id("com.github.johnrengelman.shadow") version "6.1.0"
 }
 
-description "Provides wonderful wands for your Paper/Spigot server."
-group "dev.bloodstone"
-version "0.1.3"
+description = "Provides wonderful wands for your Paper/Spigot server."
+group = "dev.bloodstone"
+version = "0.1.3"
 
 val mcVersion = "1.16.1-R0.1-SNAPSHOT"
 
@@ -45,7 +44,7 @@ dependencies {
 val shadowJarTask = tasks.named<ShadowJar>("shadowJar")
 val relocateShadowJarTask = tasks.register<ConfigureShadowRelocation>("relocateShadowJar") {
     target = shadowJarTask.get()
-    prefix = "${project.property("group")}.${project.property("name").toString().toLowerCase()}.lib"
+    prefix = "${rootProject.property("group")}.${rootProject.property("name").toString().toLowerCase()}.lib"
 }
 
 shadowJarTask.configure {
@@ -86,7 +85,7 @@ tasks {
     }
     processResources {
         filesMatching("plugin.yml") {
-            expand("version" to project.version)
+            expand("version" to rootProject.version)
         }
     }
 }
